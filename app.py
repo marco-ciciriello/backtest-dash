@@ -1,7 +1,9 @@
 import pandas as pd
 import streamlit as st
-import yfinance
 import ta
+import yfinance
+
+st.set_option('deprecation.showfileUploaderEncoding', False)
 
 
 @st.cache
@@ -22,7 +24,7 @@ def main():
 
     def label(symbol):
         a = components.loc[symbol]
-        return symbol + '-' + a.Name
+        return symbol + ' - ' + a.Name
 
     if st.sidebar.checkbox('View cryptocurrencies list'):
         st.dataframe(components[['Name',
@@ -31,11 +33,11 @@ def main():
                                  '% Change',
                                  'Market Cap']])
 
-    st.sidebar.subheader('Select asset')
-    asset = st.sidebar.selectbox('Click below to select a new asset', components.index.sort_values(), index=3,
+    st.sidebar.subheader('Asset')
+    asset = st.sidebar.selectbox('Select asset', components.index.sort_values(), index=3,
                                  format_func=label)
     title.title(components.loc[asset].Name)
-    if st.sidebar.checkbox('View cryptocurrencies info', True):
+    if st.sidebar.checkbox('View fundamentals', True):
         st.table(components.loc[asset])
     data0 = load_quotes(asset)
     data = data0.copy().dropna()
@@ -48,6 +50,8 @@ def main():
     data3 = data.copy()
     data3 = ta.add_all_ta_features(data3, 'Open', 'High', 'Low', 'Close', 'Volume', fillna=True)
     rsi = data3[-section:]['momentum_rsi'].to_frame('momentum_rsi')
+    momentum = data3[['momentum_rsi', 'momentum_roc', 'momentum_tsi', 'momentum_uo', 'momentum_stoch',
+                      'momentum_stoch_signal', 'momentum_wr', 'momentum_ao', 'momentum_kama']]
 
     sma = st.sidebar.checkbox('SMA')
     if sma:
@@ -64,23 +68,40 @@ def main():
     st.subheader('Chart')
     st.line_chart(data2)
 
-    st.subheader('Apply Technical Indicators')
-    st.code("""
-    data3 = data.copy()
-    data3 = ta.add_all_ta_features(data3, 'Open', 'High', 'Low', 'Close', 'Volume', fillna=True)
-    """, language='python')
-    st.dataframe(data3)
+    if st.sidebar.checkbox('View momentum indicators'):
+        st.subheader('Apply Technical Indicators')
+        st.code("""
+         data = ta.add_all_ta_features(data3, 'Open', 'High', 'Low', 'Close', 'Volume', fillna=True)
+         """, language='python')
+        st.header(f'Momentum Indicators')
+        st.table(momentum.iloc[[-3, -2, -1]].T.style.background_gradient(cmap='Blues'))
+        st.subheader('Momentum Indicator: RSI')
+        st.line_chart(rsi)
 
     st.subheader('Momentum Indicator: RSI')
     st.line_chart(rsi)
 
-    if st.sidebar.checkbox('View statistic'):
+    if st.sidebar.checkbox('View statistics'):
         st.subheader('Statistics')
         st.table(data2.describe())
 
     if st.sidebar.checkbox('View quotes'):
         st.subheader(f'{asset} historical data')
         st.write(data2)
+
+    if st.sidebar.checkbox('Personal portfolio analysis'):
+        st.subheader(f'{asset} personal portfolio analysis')
+        file_buffer = st.file_uploader("Choose a .csv or .xlxs file. Column names must be 'rate' and 'price'",
+                                       type=['xlsx', 'csv'])
+        if file_buffer is not None:
+            file = pd.read_excel(file_buffer)
+            file = pd.DataFrame(file)
+            st.table(file.style.background_gradient(cmap='Blues'))
+            weighted_rate = (file['price'] * file['rate']).sum() / file['price'].sum()
+            daily_price = data.Close.iloc[-1]
+            perf = {'buying price': weighted_rate, 'current price': daily_price}
+            performance = pd.DataFrame(perf, columns=['buying price', 'current price'], index=[asset])
+            st.table(performance.style.background_gradient(cmap='Blues'))
 
     st.sidebar.title('About')
     st.sidebar.info('Lorem ipsum')
