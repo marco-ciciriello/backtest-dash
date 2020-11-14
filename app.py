@@ -8,7 +8,7 @@ st.set_option('deprecation.showfileUploaderEncoding', False)
 
 @st.cache
 def load_data():
-    components = pd.read_html('https://finance.yahoo.com/cryptocurrencies/')[0]
+    components = pd.read_html('https://finance.yahoo.com/cryptocurrencies/?count=100&offset=0')[0]
     return components.drop('1 Day Chart', axis=1).set_index('Symbol')
 
 
@@ -37,6 +37,7 @@ def main():
     asset = st.sidebar.selectbox('Select asset', components.index.sort_values(), index=3,
                                  format_func=label)
     title.title(components.loc[asset].Name)
+
     if st.sidebar.checkbox('View fundamentals', True):
         st.table(components.loc[asset])
     data0 = load_quotes(asset)
@@ -49,7 +50,6 @@ def main():
     data2 = data[-section:]['Adj Close'].to_frame('Adj Close')
     data3 = data.copy()
     data3 = ta.add_all_ta_features(data3, 'Open', 'High', 'Low', 'Close', 'Volume', fillna=True)
-    rsi = data3[-section:]['momentum_rsi'].to_frame('momentum_rsi')
     momentum = data3[['momentum_rsi', 'momentum_roc', 'momentum_tsi', 'momentum_uo', 'momentum_stoch',
                       'momentum_stoch_signal', 'momentum_wr', 'momentum_ao', 'momentum_kama']]
 
@@ -75,11 +75,9 @@ def main():
          """, language='python')
         st.header(f'Momentum Indicators')
         st.table(momentum.iloc[[-3, -2, -1]].T.style.background_gradient(cmap='Blues'))
-        st.subheader('Momentum Indicator: RSI')
-        st.line_chart(rsi)
-
-    st.subheader('Momentum Indicator: RSI')
-    st.line_chart(rsi)
+        for col in momentum.columns:
+            st.subheader(f'Momentum Indicator: {col}')
+            st.line_chart(data3[-section:][col].to_frame(col))
 
     if st.sidebar.checkbox('View statistics'):
         st.subheader('Statistics')
