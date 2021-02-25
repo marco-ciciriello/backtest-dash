@@ -1,7 +1,14 @@
+import requests
 import streamlit as st
 
 
 def app():
-    st.title('Twitter')
+    symbol = st.sidebar.text_input("Symbol", value='AAPL', max_chars=5)
+    r = requests.get(f'https://api.stocktwits.com/api/2/streams/symbol/{symbol}.json')
+    data = r.json()
 
-    st.write('Tweets for selected tickers will be shown here')
+    for message in data['messages']:
+        st.image(message['user']['avatar_url'])
+        st.write(message['user']['username'])
+        st.write(message['created_at'])
+        st.write(message['body'])
