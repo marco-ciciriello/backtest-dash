@@ -1,9 +1,11 @@
 import requests
 
+from typing import List
+
 
 class IEXStock:
 
-    def __init__(self, token, symbol, environment='production'):
+    def __init__(self, token, symbol, environment='production') -> None:
         if environment == 'production':
             self.base_url = 'https://cloud.iexapis.com/v1'
         else:
@@ -12,20 +14,14 @@ class IEXStock:
         self.token = token
         self.symbol = symbol
 
-    def get_logo(self):
+    def get_logo(self) -> dict:
         url = f'{self.base_url}/stock/{self.symbol}/logo?token={self.token}'
         r = requests.get(url)
 
         return r.json()
 
-    def get_company_info(self):
+    def get_company_info(self) -> dict:
         url = f'{self.base_url}/stock/{self.symbol}/company?token={self.token}'
-        r = requests.get(url)
-
-        return r.json()
-
-    def get_company_news(self, last=10):
-        url = f'{self.base_url}/stock/{self.symbol}/news/last/{last}?token={self.token}'
         r = requests.get(url)
 
         return r.json()
@@ -36,14 +32,20 @@ class IEXStock:
 
         return r.json()
 
-    def get_fundamentals(self, period='quarterly', last=4):
+    def get_fundamentals(self, period: str = 'quarterly', last: int = 4):
         url = f'{self.base_url}/time-series/fundamentals/{self.symbol}/{period}?last={last}&token={self.token}'
         r = requests.get(url)
 
         return r.json()
 
-    def get_dividends(self, period='5y'):
+    def get_dividends(self, period: str = '5y') -> List:
         url = f'{self.base_url}/stock/{self.symbol}/dividends/{period}?token={self.token}'
+        r = requests.get(url)
+
+        return r.json()
+
+    def get_company_news(self, last: int = 10) -> List:
+        url = f'{self.base_url}/stock/{self.symbol}/news/last/{last}?token={self.token}'
         r = requests.get(url)
 
         return r.json()

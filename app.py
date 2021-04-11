@@ -4,19 +4,20 @@ import redis
 import requests
 import streamlit as st
 
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
+
 from helpers import format_number
 from iex import IEXStock
 
 client = redis.Redis(host='localhost', port=6379)
 
-symbol = st.sidebar.text_input("Symbol", value='MSFT')
+symbol = st.sidebar.text_input('Symbol', value='AAPL')
 stock = IEXStock(config.IEX_API_TOKEN, symbol)
-screen = st.sidebar.selectbox('View', ('Overview', 'Fundamentals', 'Technicals', 'News', 'Ownership', 'Stocktwits'), index=1)
+screen = st.sidebar.selectbox('View', ('Overview', 'Fundamentals', 'Technicals', 'News', 'Ownership', 'Stocktwits'), index=0)
 
 st.title(screen)
 
+# Overview screen
 if screen == 'Overview':
     logo_cache_key = f'{symbol}_logo'
     cached_logo = client.get(logo_cache_key)
@@ -25,8 +26,7 @@ if screen == 'Overview':
         print('Found logo in cache')
         logo = json.loads(cached_logo)
     else:
-        print('Getting logo from API')
-        print('Storing logo in cache')
+        print('Getting logo from API and storing in cache')
         logo = stock.get_logo()
         client.set(logo_cache_key, json.dumps(logo))
         client.expire(logo_cache_key, timedelta(hours=24))
@@ -38,8 +38,7 @@ if screen == 'Overview':
         print('Found company news in cache')
         company = json.loads(cached_company_info)
     else:
-        print('Getting company new from API')
-        print('Storing company news in cache')
+        print('Getting company news from API and storing in cache')
         company = stock.get_company_info()
         client.set(company_cache_key, json.dumps(company))
         client.expire(company_cache_key, timedelta(hours=24))
@@ -57,6 +56,7 @@ if screen == 'Overview':
         st.subheader('CEO')
         st.write(company['CEO'])
 
+# Fundamentals screen
 if screen == 'Fundamentals':
     stats_cache_key = f'{symbol}_stats'
     stats = client.get(stats_cache_key)
@@ -127,6 +127,15 @@ if screen == 'Fundamentals':
         st.write(dividend['paymentDate'])
         st.write(dividend['amount'])
 
+# Technicals screen
+if screen == 'Technicals':
+    st.subheader('Company technical data coming soon. This will include:')
+    st.write("""
+            - OHLCV data and charts
+            - Momentum and volatility indicators
+    """)
+
+# News screen
 if screen == 'News':
     news_cache_key = f'{symbol}_news'
 
@@ -146,6 +155,7 @@ if screen == 'News':
         st.write(article['summary'])
         st.image(article['image'])
 
+# Ownership screen
 if screen == 'Ownership':
     st.subheader('Institutional Ownership')
 
@@ -182,6 +192,7 @@ if screen == 'Ownership':
         st.write(transaction['transactionShares'])
         st.write(transaction['transactionPrice'])
 
+# Stocktwits screen
 if screen == 'Stocktwits':
     r = requests.get(f'https://api.stocktwits.com/api/2/streams/symbol/{symbol}.json')
     data = r.json()
